@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chat with us</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #0f1115; color: #eee; }
+      #widget { max-width: 380px; margin: 2rem auto; border: 1px solid #2a2d35; border-radius: 12px; overflow: hidden; }
+      header { background: #4f7cff; padding: 0.75rem 1rem; font-weight: 600; }
+      #thread { list-style: none; margin: 0; padding: 1rem; height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+      #thread li { padding: 0.5rem 0.75rem; border-radius: 10px; background: #1e2129; max-width: 80%; }
+      #thread li.mine { align-self: flex-end; background: #2b4faf; }
+      form { display: flex; border-top: 1px solid #2a2d35; }
+      input { flex: 1; border: none; background: #14161c; color: white; padding: 0.75rem; }
+      button { border: none; background: #4f7cff; color: white; padding: 0 1rem; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div id="widget">
+      <header>Support chat</header>
+      <ul id="thread"></ul>
+      <form id="form">
+        <input id="text" autocomplete="off" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // A random per-browser id, persisted so refreshing the page keeps the
+      // same conversation. This is exactly analogous to a WhatsApp phone
+      // number: it's the externalId the "web" channel adapter uses.
+      let sessionId = localStorage.getItem('chatSessionId');
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        localStorage.setItem('chatSessionId', sessionId);
+      }
+
+      const socket = io('/chat', { auth: { sessionId } });
+      const thread = document.getElementById('thread');
+
+      function addMessage(text, mine) {
+        const li = document.createElement('li');
+        li.textContent = text;
+        if (mine) li.className = 'mine';
+        thread.appendChild(li);
+        thread.scrollTop = thread.scrollHeight;
+      }
+
+      socket.on('message', (msg) => addMessage(msg.text, false));
+
+      document.getElementById('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('text');
+        const text = input.value.trim();
+        if (!text) return;
+        socket.emit('message', { text });
+        addMessage(text, true);
+        input.value = '';
+      });
+    </script>
+  </body>
+</html>

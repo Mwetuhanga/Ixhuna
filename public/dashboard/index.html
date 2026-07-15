@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Support Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="login-view" class="view">
+      <form id="login-form">
+        <h1>Agent login</h1>
+        <input type="email" id="email" placeholder="Email" required autocomplete="username" />
+        <input type="password" id="password" placeholder="Password" required autocomplete="current-password" />
+        <button type="submit">Log in</button>
+        <p id="login-error" class="error"></p>
+      </form>
+    </div>
+
+    <div id="app-view" class="view" hidden>
+      <aside>
+        <h2>Conversations</h2>
+        <ul id="conversation-list"></ul>
+        <h2>Complaints</h2>
+        <ul id="complaint-list"></ul>
+        <button id="logout">Log out</button>
+      </aside>
+      <main>
+        <div id="thread-header"></div>
+        <ul id="message-thread"></ul>
+        <form id="reply-form">
+          <textarea id="reply-text" placeholder="Type a reply..."></textarea>
+          <div class="actions">
+            <button type="button" id="suggest-btn">Suggest reply</button>
+            <button type="button" id="handover-human">Take over</button>
+            <button type="button" id="handover-bot">Return to bot</button>
+            <button type="submit">Send</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

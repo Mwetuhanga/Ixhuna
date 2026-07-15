@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #0f1115; color: #e6e6e6; }
+.view { min-height: 100vh; }
+
+#login-view { display: flex; align-items: center; justify-content: center; }
+#login-form { display: flex; flex-direction: column; gap: 0.75rem; width: 280px; }
+#login-form input, #login-form button { padding: 0.6rem; border-radius: 6px; border: 1px solid #333; }
+#login-form button { background: #4f7cff; color: white; border: none; cursor: pointer; }
+.error { color: #ff6b6b; min-height: 1.2em; }
+
+#app-view[hidden] { display: none; }
+#app-view { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+
+aside { background: #14161c; padding: 1rem; overflow-y: auto; border-right: 1px solid #22252c; }
+aside h2 { font-size: 0.85rem; text-transform: uppercase; color: #888; margin: 1rem 0 0.5rem; }
+aside ul { list-style: none; margin: 0; padding: 0; }
+aside li { padding: 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+aside li:hover, aside li.active { background: #1e2129; }
+#logout { margin-top: 1.5rem; width: 100%; padding: 0.5rem; background: transparent; color: #999; border: 1px solid #333; border-radius: 6px; cursor: pointer; }
+
+main { display: flex; flex-direction: column; padding: 1rem; overflow: hidden; }
+#thread-header { font-size: 0.9rem; color: #999; margin-bottom: 0.5rem; }
+#message-thread { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+#message-thread li { max-width: 60%; padding: 0.5rem 0.75rem; border-radius: 10px; background: #1e2129; }
+#message-thread li.outbound { align-self: flex-end; background: #2b4faf; }
+#message-thread li .meta { font-size: 0.7rem; color: #aaa; display: block; margin-bottom: 0.2rem; }
+
+#reply-form { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+#reply-text { resize: vertical; min-height: 3rem; padding: 0.5rem; border-radius: 6px; border: 1px solid #333; background: #1a1c22; color: white; }
+.actions { display: flex; gap: 0.5rem; }
+.actions button { padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #333; background: #1e2129; color: white; cursor: pointer; }
+.actions button[type="submit"] { background: #4f7cff; border: none; margin-left: auto; }

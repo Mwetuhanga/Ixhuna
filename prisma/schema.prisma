@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A person, identified across one or more channels. One Customer can have
+// several CustomerIdentity rows (e.g. a WhatsApp number and a web session),
+// which is how history carries over when someone switches channels.
+model Customer {
+  id            String             @id @default(uuid())
+  displayName   String?
+  email         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  identities    CustomerIdentity[]
+  conversations Conversation[]
+  complaints    Complaint[]
+  linkRequests  LinkRequest[]
+}
+
+// Channel is a free-form string (not an enum) on purpose: adding a new
+// channel adapter later shouldn't require a schema migration.
+model CustomerIdentity {
+  id         String   @id @default(uuid())
+  channel    String
+  externalId String
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([channel, externalId])
+  @@index([customerId])
+}
+
+enum AgentRole {
+  AGENT
+  ADMIN
+}
+
+model Agent {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          AgentRole      @default(AGENT)
+  createdAt     DateTime       @default(now())
+  conversations Conversation[] @relation("AssignedAgent")
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+// Who currently owns replying in this conversation: the bot's automated
+// flow, or a human agent who has taken over.
+enum HandoverState {
+  BOT
+  HUMAN
+}
+
+model Conversation {
+  id              String             @id @default(uuid())
+  customerId      String
+  customer        Customer           @relation(fields: [customerId], references: [id])
+  status          ConversationStatus @default(OPEN)
+  handoverState   HandoverState      @default(BOT)
+  assignedAgentId String?
+  assignedAgent   Agent?             @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  // Persisted conversation-engine state (current stage + collected draft
+  // fields), so the flow survives process restarts and works across
+  // multiple app instances.
+  flowState       Json?
+  messages        Message[]
+  complaints      Complaint[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([customerId])
+  @@index([assignedAgentId])
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SenderType {
+  CUSTOMER
+  BOT
+  AGENT
+}
+
+model Message {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   Conversation     @relation(fields: [conversationId], references: [id])
+  channel        String
+  direction      MessageDirection
+  senderType     SenderType
+  body           String
+  externalId     String?
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId])
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model Complaint {
+  id             String          @id @default(uuid())
+  ticket         Int             @default(autoincrement())
+  conversationId String
+  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  customerId     String
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  category       String
+  description    String
+  contact        String
+  status         ComplaintStatus @default(OPEN)
+  createdAt      DateTime        @default(now())
+
+  @@index([customerId])
+  @@index([conversationId])
+}
+
+// Short-lived code used to securely link a new channel identity (e.g. a
+// WhatsApp number) to an existing, already-identified Customer.
+model LinkRequest {
+  id         String    @id @default(uuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  code       String
+  channel    String
+  externalId String
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId])
+}
