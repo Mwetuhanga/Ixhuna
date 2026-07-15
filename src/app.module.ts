@@ -22,7 +22,7 @@ import { AiModule } from './ai/ai.module';
       },
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(__dirname, '..', '..', 'public'),
     }),
     PrismaModule,
     ChannelsSharedModule,
