@@ -1,12 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ChannelAdapter } from '../channel.types';
 import { ChannelRegistryService } from '../channel-registry.service';
+import { WhatsAppSimulatorGateway } from './simulator/whatsapp-simulator.gateway';
+import { isWhatsAppSimulatorEnabled } from './simulator/whatsapp-simulator.util';
 
 @Injectable()
 export class WhatsAppAdapter implements ChannelAdapter, OnModuleInit {
   readonly channel = 'whatsapp';
 
-  constructor(private readonly registry: ChannelRegistryService) {}
+  constructor(
+    private readonly registry: ChannelRegistryService,
+    private readonly simulator: WhatsAppSimulatorGateway
+  ) {}
 
   onModuleInit() {
     this.registry.register(this);
@@ -19,6 +24,11 @@ export class WhatsAppAdapter implements ChannelAdapter, OnModuleInit {
   }
 
   async sendMessage(externalId: string, body: string): Promise<void> {
+    if (isWhatsAppSimulatorEnabled()) {
+      this.simulator.deliver(externalId, body);
+      return;
+    }
+
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
     if (!accessToken || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
       throw new Error('WhatsApp is not configured (missing WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID).');

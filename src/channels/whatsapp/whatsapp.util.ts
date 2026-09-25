@@ -12,7 +12,7 @@ export function verifyWhatsAppSignature(rawBody: Buffer | undefined, signatureHe
   return crypto.timingSafeEqual(expectedBuf, actualBuf);
 }
 
-interface WhatsAppWebhookPayload {
+export interface WhatsAppWebhookPayload {
   entry?: {
     changes?: {
       value?: {

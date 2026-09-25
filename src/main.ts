@@ -1,3 +1,7 @@
+// Load .env before any module is evaluated: several modules read
+// process.env when they're defined (e.g. the JWT secret), which happens
+// before ConfigModule would load it.
+import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';

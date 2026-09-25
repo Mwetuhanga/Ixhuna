@@ -4,6 +4,8 @@ import { CustomersModule } from '../customers/customers.module';
 import { ComplaintsModule } from '../complaints/complaints.module';
 import { WhatsAppAdapter } from './whatsapp/whatsapp.adapter';
 import { WhatsAppController } from './whatsapp/whatsapp.controller';
+import { WhatsAppInboundService } from './whatsapp/whatsapp-inbound.service';
+import { WhatsAppSimulatorGateway } from './whatsapp/simulator/whatsapp-simulator.gateway';
 import { WebGateway } from './web/web.gateway';
 import { WebFormController } from './web-form/web-form.controller';
 import { WebFormService } from './web-form/web-form.service';
@@ -16,7 +18,14 @@ import { RateLimiterService } from './web-form/rate-limiter.service';
 // skip the adapter and conversation engine and call ComplaintIntakeService.
 @Module({
   imports: [ConversationsModule, CustomersModule, ComplaintsModule],
-  providers: [WhatsAppAdapter, WebGateway, WebFormService, RateLimiterService],
+  providers: [
+    WhatsAppAdapter,
+    WhatsAppInboundService,
+    WhatsAppSimulatorGateway,
+    WebGateway,
+    WebFormService,
+    RateLimiterService,
+  ],
   controllers: [WhatsAppController, WebFormController],
 })
 export class ChannelsModule {}

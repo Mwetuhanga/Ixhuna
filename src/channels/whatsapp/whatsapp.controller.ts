@@ -1,13 +1,11 @@
-import { Controller, Get, Headers, HttpCode, Logger, Post, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, Post, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { ConversationEngineService } from '../../conversations/conversation-engine.service';
-import { extractWhatsAppMessages, verifyWhatsAppSignature } from './whatsapp.util';
+import { verifyWhatsAppSignature } from './whatsapp.util';
+import { WhatsAppInboundService } from './whatsapp-inbound.service';
 
 @Controller('webhook/whatsapp')
 export class WhatsAppController {
-  private readonly logger = new Logger(WhatsAppController.name);
-
-  constructor(private readonly engine: ConversationEngineService) {}
+  constructor(private readonly inbound: WhatsAppInboundService) {}
 
   @Get()
   verify(
@@ -33,20 +31,7 @@ export class WhatsAppController {
       return { ok: false };
     }
 
-    const messages = extractWhatsAppMessages(req.body);
-    for (const message of messages) {
-      try {
-        await this.engine.handleIncoming({
-          channel: 'whatsapp',
-          externalId: message.from,
-          text: message.text,
-          externalMessageId: message.externalMessageId,
-        });
-      } catch (err) {
-        this.logger.error(`Failed to process WhatsApp message from ${message.from}`, err as Error);
-      }
-    }
-
+    await this.inbound.handleWebhookPayload(req.body);
     return { ok: true };
   }
 }

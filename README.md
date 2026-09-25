@@ -6,7 +6,7 @@ A complaint/support chatbot that talks to customers over **WhatsApp** and a **we
 
 1. A customer messages your WhatsApp number, opens the web chat widget on your site, or fills in the complaint form at `/complaint`.
 2. On the chat channels they go through a guided complaint flow: description → category → contact preference → confirm. The form collects the same details in one go.
-3. Every channel files the complaint through one shared intake service: it's saved to Postgres with the channel it came from, the dashboard updates live, and a notification email fires (via a Redis/BullMQ queue). Form users also see their ticket number on screen, and get it by email if they gave one.
+3. Every channel files the complaint through one shared intake service: it's saved to Postgres with the channel it came from, the dashboard updates live, and a notification email fires (via a Redis/BullMQ queue). The complainant is told their complaint was received and passed on, with a reference number (e.g. `7K3Q-9P2M`): in the chat, on screen after the form, and by email if they gave one.
 4. At any point the customer can type "agent" (or "human") to hand the conversation to a person; agents see it live on the dashboard and can take over, reply, or hand it back to the bot.
 5. If the same person later shows up on a different channel, a short-lived link code attaches the new channel identity to their existing customer record, so their history carries over.
 
@@ -30,6 +30,7 @@ src/
     channel.types.ts           ChannelAdapter interface every channel implements
     channel-registry.service.ts
     whatsapp/                  Meta WhatsApp Cloud API webhook + adapter
+      simulator/               Test stand-in for WhatsApp (see "Testing the WhatsApp bot")
     web/                       Website chat widget over Socket.io
     web-form/                  Public complaint form API: validation, phone normalization, honeypot, Redis rate limit
   customers/                   Customer + CustomerIdentity, cross-channel link request/confirm
@@ -43,6 +44,7 @@ public/
   dashboard/                   Minimal agent dashboard (login, conversation list, reply, handover)
   widget/                      Standalone demo page for the web chat channel
   complaint/                   Website complaint form (mobile-friendly, light/dark)
+  whatsapp-simulator/          Chat with the WhatsApp bot in a browser, no Meta account needed
 ```
 
 **Adding a channel later**: implement `ChannelAdapter` (`sendMessage`), normalize its inbound events into `IncomingMessage`, call `ConversationEngineService.handleIncoming()`, and register the adapter in `ChannelsModule`. Nothing else changes — the engine, database schema, and dashboard are already channel-agnostic (`channel` is a free-form string, not an enum). A channel that only takes complaints in and never replies (like the website form) can skip the adapter and conversation engine and call `ComplaintIntakeService.submit()` directly.
@@ -65,14 +67,44 @@ This is a working foundation you can run end-to-end locally today (verified: ful
 
 ```bash
 npm install
-cp .env.example .env        # fill in the values, see below
+cp .env.example .env        # defaults run a local test environment; change ADMIN_SEED_PASSWORD
 docker compose up -d        # starts local Postgres + Redis
-npm run prisma:migrate      # creates the schema
+npm run prisma:migrate      # creates the schema (use `npm run prisma:deploy` on servers)
 npm run seed                # creates the first admin agent from ADMIN_SEED_* env vars
 npm run start:dev
 ```
 
-Open `http://localhost:3000/dashboard` and log in with the seeded admin credentials. Open `http://localhost:3000/widget` in another tab to try the web chat channel, and `http://localhost:3000/complaint` to try the complaint form.
+Open `http://localhost:3000/dashboard` and log in with the seeded admin credentials. Open `http://localhost:3000/whatsapp-simulator` to chat with the WhatsApp bot, `http://localhost:3000/widget` to try the web chat channel, and `http://localhost:3000/complaint` to try the complaint form.
+
+## Testing the WhatsApp bot
+
+There are two ways, and you'll usually want both: the simulator for day-to-day testing, then a real phone before going live.
+
+### 1. The simulator (no Meta account needed)
+
+With `WHATSAPP_SIMULATOR=true` in `.env` (the default in `.env.example`), open `http://localhost:3000/whatsapp-simulator`. It's a chat screen where you play a WhatsApp user:
+
+- Your messages are turned into exactly the webhook payload Meta sends and go through the same code as real WhatsApp messages, so what works here works on WhatsApp.
+- The bot's replies, and any agent replies from the dashboard, appear in the simulator instead of being sent to Meta.
+- Tap **Test user** to choose the phone number and name you're chatting as, or **New test user** for a fresh random number. Open several tabs to be several customers at once.
+- The 🎤 button sends a voice note, to test how the bot handles messages it can't read.
+- Keep the dashboard open next to it to watch complaints arrive, take over a conversation, and reply as an agent.
+
+While the simulator is on, **all** outgoing WhatsApp messages go to it, and anyone who can open the page can chat as any phone number. Only turn it on for local or private test servers, never where real customers use the bot.
+
+### 2. Real WhatsApp with Meta's free test number
+
+Meta gives every WhatsApp Cloud API app a free test phone number that can message up to 5 phone numbers you verify, so you can try the bot on your own phone before you have a business number.
+
+1. Create a Meta app with the WhatsApp product and open **WhatsApp → API Setup**: https://developers.facebook.com/docs/whatsapp/cloud-api/get-started
+2. Under **To**, add and verify your own phone number (up to 5 testers).
+3. Copy the **temporary access token** into `WHATSAPP_ACCESS_TOKEN` and the test number's **Phone number ID** into `WHATSAPP_PHONE_NUMBER_ID`. The temporary token expires after about 24 hours; for longer testing create a System User token in Meta Business settings.
+4. Set `WHATSAPP_SIMULATOR=false`, choose any `WHATSAPP_VERIFY_TOKEN`, and restart the app.
+5. Meta needs a public HTTPS address for the webhook. Locally, expose port 3000 with a tunnel, for example `cloudflared tunnel --url http://localhost:3000` or `ngrok http 3000`.
+6. In **WhatsApp → Configuration**, set the Callback URL to `https://<tunnel-address>/webhook/whatsapp` and the Verify token to your `WHATSAPP_VERIFY_TOKEN`, then subscribe to the `messages` field.
+7. Message the test number from your verified phone. The conversation appears on the dashboard like any other.
+
+For going live, the steps are the same with your own business phone number and a permanent token, plus the app secret below.
 
 ## Configuring WhatsApp
 
@@ -83,7 +115,7 @@ Open `http://localhost:3000/dashboard` and log in with the seeded admin credenti
 
 ## Environment variables
 
-See `.env.example` for the full list with comments — server port/JWT secret, `DATABASE_URL`, Redis host/port, WhatsApp Cloud API credentials, SMTP settings, the AI provider switch, and the seed-admin credentials.
+See `.env.example` for the full list with comments — server port/JWT secret, `DATABASE_URL`, Redis host/port, WhatsApp Cloud API credentials and the `WHATSAPP_SIMULATOR` switch, SMTP settings, the AI provider switch, and the seed-admin credentials.
 
 Website complaint form:
 
@@ -96,7 +128,7 @@ Website complaint form:
 Public (no login), used by the complaint form:
 
 - `GET /public/complaints/options` — the category and language choices the form offers
-- `POST /public/complaints` — submit a complaint; returns `{ received: true, ticket }`. Needs a phone number or email, and `consent: true`.
+- `POST /public/complaints` — submit a complaint; returns `{ received: true, reference }`. Needs a phone number or email, and `consent: true`.
 
 Dashboard (all under JWT auth except `/auth/login`):
 

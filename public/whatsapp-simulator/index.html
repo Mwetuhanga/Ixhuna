@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhatsApp simulator</title>
+    <style>
+      :root {
+        --bg: #e9edef;
+        --panel: #ffffff;
+        --header: #075e54;
+        --header-text: #ffffff;
+        --chat-bg: #efe7dd;
+        --bubble-in: #ffffff;
+        --bubble-out: #d9fdd3;
+        --text: #111b21;
+        --muted: #667781;
+        --border: #d1d7db;
+        --accent: #00a884;
+        --warn-bg: #fff4ce;
+        --warn-text: #5c4400;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b141a;
+          --panel: #111b21;
+          --header: #202c33;
+          --header-text: #e9edef;
+          --chat-bg: #0b141a;
+          --bubble-in: #202c33;
+          --bubble-out: #005c4b;
+          --text: #e9edef;
+          --muted: #8696a0;
+          --border: #2a3942;
+          --accent: #00a884;
+          --warn-bg: #3d3214;
+          --warn-text: #f7dc8f;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        justify-content: center;
+      }
+      .phone {
+        width: 100%;
+        max-width: 480px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+      }
+      .test-banner {
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        text-align: center;
+      }
+      .test-banner a { color: inherit; }
+      header {
+        background: var(--header);
+        color: var(--header-text);
+        padding: 0.6rem 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .avatar {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: var(--accent); color: #fff;
+        display: grid; place-items: center; font-weight: 700; flex: none;
+      }
+      .who { flex: 1; min-width: 0; }
+      .who strong { display: block; }
+      .who span { font-size: 0.8rem; opacity: 0.85; }
+      header button {
+        background: transparent; color: var(--header-text);
+        border: 1px solid currentColor; border-radius: 6px;
+        padding: 0.3rem 0.55rem; font: inherit; font-size: 0.8rem; cursor: pointer;
+      }
+      .setup {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+      }
+      .setup[hidden] { display: none; }
+      .setup label { display: grid; gap: 0.2rem; color: var(--muted); }
+      .setup input {
+        font: inherit; color: var(--text); background: var(--bg);
+        border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.6rem;
+      }
+      .setup .row { display: flex; gap: 0.5rem; }
+      .setup .row > * { flex: 1; }
+      .btn {
+        font: inherit; font-weight: 600; border: 0; border-radius: 6px;
+        padding: 0.5rem 0.75rem; cursor: pointer; background: var(--accent); color: #fff;
+      }
+      .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+      #chat {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--chat-bg);
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        list-style: none;
+        margin: 0;
+      }
+      #chat li {
+        max-width: 82%;
+        padding: 0.4rem 0.55rem 0.3rem;
+        border-radius: 8px;
+        background: var(--bubble-in);
+        box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: 1.35;
+      }
+      #chat li.out { align-self: flex-end; background: var(--bubble-out); }
+      #chat li.system {
+        align-self: center; background: var(--warn-bg); color: var(--warn-text);
+        font-size: 0.8rem; text-align: center; box-shadow: none;
+      }
+      #chat .meta { display: block; text-align: right; font-size: 0.68rem; color: var(--muted); margin-top: 0.15rem; }
+      #chat .from { display: block; font-size: 0.72rem; font-weight: 600; color: var(--accent); }
+      form#composer {
+        display: flex; gap: 0.4rem; padding: 0.5rem; background: var(--panel);
+        border-top: 1px solid var(--border);
+      }
+      #text {
+        flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--bg);
+        border: 1px solid var(--border); border-radius: 20px; padding: 0.55rem 0.9rem;
+      }
+      .icon-btn {
+        flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0;
+        background: var(--accent); color: #fff; font-size: 1.05rem; cursor: pointer;
+      }
+      .icon-btn.plain { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+      button:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="test-banner">
+        Test simulator: nothing here reaches real WhatsApp.
+        <a href="/dashboard/" target="_blank" rel="noopener">Open agent dashboard</a>
+      </div>
+      <header>
+        <div class="avatar" aria-hidden="true">B</div>
+        <div class="who">
+          <strong>Complaints bot</strong>
+          <span id="status">Not connected</span>
+        </div>
+        <button type="button" id="toggle-setup">Test user</button>
+      </header>
+
+      <form class="setup" id="setup">
+        <label>
+          You are chatting as this WhatsApp number (with country code, digits only)
+          <input id="phone" inputmode="numeric" autocomplete="off" required pattern="\d{8,15}" />
+        </label>
+        <label>
+          Profile name
+          <input id="name" autocomplete="off" maxlength="60" />
+        </label>
+        <div class="row">
+          <button type="submit" class="btn">Chat as this number</button>
+          <button type="button" class="btn secondary" id="new-user">New test user</button>
+        </div>
+      </form>
+
+      <ul id="chat" aria-live="polite"></ul>
+
+      <form id="composer">
+        <button type="button" class="icon-btn plain" id="voice" title="Send a voice note (test)" aria-label="Send a voice note (test)">🎤</button>
+        <input id="text" autocomplete="off" placeholder="Type a message" disabled />
+        <button type="submit" class="icon-btn" id="send" aria-label="Send" disabled>➤</button>
+      </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const chat = document.getElementById('chat');
+      const statusEl = document.getElementById('status');
+      const phoneInput = document.getElementById('phone');
+      const nameInput = document.getElementById('name');
+      const textInput = document.getElementById('text');
+      const sendBtn = document.getElementById('send');
+      const voiceBtn = document.getElementById('voice');
+      const setup = document.getElementById('setup');
+      let socket = null;
+
+      function storage(key, value) {
+        try {
+          if (value === undefined) return localStorage.getItem(key);
+          localStorage.setItem(key, value);
+        } catch {
+          return null;
+        }
+      }
+
+      function randomNamibianMobile() {
+        let n = '26481';
+        for (let i = 0; i < 7; i++) n += Math.floor(Math.random() * 10);
+        return n;
+      }
+
+      function time(date) {
+        return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function addBubble(body, kind, createdAt, from) {
+        const li = document.createElement('li');
+        if (kind !== 'in') li.className = kind;
+        if (from) {
+          const f = document.createElement('span');
+          f.className = 'from';
+          f.textContent = from;
+          li.appendChild(f);
+        }
+        li.appendChild(document.createTextNode(body));
+        if (kind !== 'system') {
+          const meta = document.createElement('span');
+          meta.className = 'meta';
+          meta.textContent = time(createdAt || Date.now());
+          li.appendChild(meta);
+        }
+        chat.appendChild(li);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function setConnected(connected) {
+        textInput.disabled = !connected;
+        sendBtn.disabled = !connected;
+        voiceBtn.disabled = !connected;
+        if (connected) textInput.focus();
+      }
+
+      function connect() {
+        const phone = phoneInput.value.trim();
+        const name = nameInput.value.trim() || 'Test user';
+        if (!/^\d{8,15}$/.test(phone)) {
+          phoneInput.focus();
+          return;
+        }
+        storage('sim.phone', phone);
+        storage('sim.name', name);
+        if (socket) socket.disconnect();
+        chat.innerHTML = '';
+        statusEl.textContent = 'Connecting…';
+        setConnected(false);
+
+        socket = io('/whatsapp-simulator', { auth: { phone, name } });
+        socket.on('connect', () => {
+          statusEl.textContent = `Chatting as +${phone} (${name})`;
+          setConnected(true);
+          setup.hidden = true;
+        });
+        socket.on('history', (messages) => {
+          chat.innerHTML = '';
+          if (!messages.length) addBubble('New conversation. Say hello to start.', 'system');
+          for (const m of messages) {
+            const from = m.senderType === 'AGENT' ? 'Agent' : null;
+            addBubble(m.body, m.direction === 'INBOUND' ? 'out' : 'in', m.createdAt, from);
+          }
+        });
+        socket.on('message', (m) => addBubble(m.body, 'in', m.createdAt));
+        socket.on('simulator-disabled', () => {
+          socket.io.opts.reconnection = false;
+          addBubble(
+            'The simulator is switched off on this server. Set WHATSAPP_SIMULATOR=true in .env and restart the app.',
+            'system'
+          );
+        });
+        socket.on('simulator-error', (message) => {
+          socket.io.opts.reconnection = false;
+          addBubble(message, 'system');
+          setup.hidden = false;
+        });
+        socket.on('disconnect', () => {
+          statusEl.textContent = 'Disconnected';
+          setConnected(false);
+        });
+      }
+
+      setup.addEventListener('submit', (e) => {
+        e.preventDefault();
+        connect();
+      });
+
+      document.getElementById('new-user').addEventListener('click', () => {
+        phoneInput.value = randomNamibianMobile();
+        nameInput.value = '';
+        connect();
+      });
+
+      document.getElementById('toggle-setup').addEventListener('click', () => {
+        setup.hidden = !setup.hidden;
+        if (!setup.hidden) phoneInput.focus();
+      });
+
+      document.getElementById('composer').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = textInput.value.trim();
+        if (!text || !socket) return;
+        socket.emit('message', { text });
+        addBubble(text, 'out');
+        textInput.value = '';
+      });
+
+      voiceBtn.addEventListener('click', () => {
+        if (!socket) return;
+        socket.emit('message', { type: 'audio' });
+        addBubble('🎤 Voice note (0:07)', 'out');
+      });
+
+      phoneInput.value = storage('sim.phone') || randomNamibianMobile();
+      nameInput.value = storage('sim.name') || '';
+      connect();
+    </script>
+  </body>
+</html>
