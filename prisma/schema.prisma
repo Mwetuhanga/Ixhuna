@@ -116,21 +116,31 @@ enum ComplaintStatus {
   RESOLVED
 }
 
+// Every channel files complaints through ComplaintIntakeService, so this is
+// the one record analytics, routing and notifications work from.
 model Complaint {
   id             String          @id @default(uuid())
   ticket         Int             @default(autoincrement())
-  conversationId String
-  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  // Channel the complaint arrived on ("whatsapp", "web", "web-form", ...).
+  channel        String
+  // Set when the complaint was collected in a chat conversation. Channels
+  // with no conversation (e.g. the website form) leave it null.
+  conversationId String?
+  conversation   Conversation?   @relation(fields: [conversationId], references: [id])
   customerId     String
   customer       Customer        @relation(fields: [customerId], references: [id])
   category       String
+  // Exactly as the complainant wrote it; translations are stored separately.
   description    String
+  // Language the complainant wrote in (ISO 639 code), when known.
+  language       String?
   contact        String
   status         ComplaintStatus @default(OPEN)
   createdAt      DateTime        @default(now())
 
   @@index([customerId])
   @@index([conversationId])
+  @@index([channel])
 }
 
 // Short-lived code used to securely link a new channel identity (e.g. a

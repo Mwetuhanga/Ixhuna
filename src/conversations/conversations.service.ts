@@ -27,11 +27,4 @@ export class ConversationsService {
       },
     });
   }
-
-  listComplaints() {
-    return this.prisma.complaint.findMany({
-      include: { customer: true },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
 }

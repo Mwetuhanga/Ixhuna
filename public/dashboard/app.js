@@ -86,10 +86,31 @@ async function loadComplaints() {
   list.innerHTML = '';
   for (const complaint of complaints) {
     const li = document.createElement('li');
-    li.textContent = `#${complaint.ticket} ${complaint.category} — ${complaint.status}`;
-    li.addEventListener('click', () => selectConversation(complaint.conversationId));
+    li.textContent = `#${complaint.ticket} ${complaint.category} · ${complaint.channel} — ${complaint.status}`;
+    // Chat complaints open their conversation; form complaints have none.
+    li.addEventListener('click', () =>
+      complaint.conversationId ? selectConversation(complaint.conversationId) : showComplaint(complaint)
+    );
     list.appendChild(li);
   }
+}
+
+function showComplaint(complaint) {
+  state.activeConversationId = null;
+  document.getElementById('thread-header').textContent =
+    `Complaint #${complaint.ticket} — ${complaint.category} via ${complaint.channel} (no chat to reply in)`;
+
+  const thread = document.getElementById('message-thread');
+  thread.innerHTML = '';
+  const li = document.createElement('li');
+  const details = [`Contact: ${complaint.contact}`];
+  if (complaint.language) details.push(`Language: ${complaint.language}`);
+  li.innerHTML =
+    `<span class="meta">${escapeHtml(details.join(' · '))} · ${new Date(complaint.createdAt).toLocaleString()}</span>` +
+    escapeHtml(complaint.description);
+  thread.appendChild(li);
+
+  document.querySelectorAll('#conversation-list li').forEach((el) => el.classList.remove('active'));
 }
 
 async function selectConversation(id) {

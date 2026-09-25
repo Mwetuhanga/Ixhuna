@@ -6,6 +6,7 @@ import { ChannelRegistryService } from '../channels/channel-registry.service';
 import { IncomingMessage } from '../channels/channel.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AgentsRealtimeGateway } from '../realtime/agents-realtime.gateway';
+import { ComplaintIntakeService } from '../complaints/complaint-intake.service';
 import { advanceFlow, createFlowState, greeting, FlowState } from './conversation-flow';
 
 const HANDOVER_KEYWORDS = ['agent', 'human', 'representative'];
@@ -19,7 +20,8 @@ export class ConversationEngineService {
     private readonly customers: CustomersService,
     private readonly channels: ChannelRegistryService,
     private readonly notifications: NotificationsService,
-    private readonly realtime: AgentsRealtimeGateway
+    private readonly realtime: AgentsRealtimeGateway,
+    private readonly intake: ComplaintIntakeService
   ) {}
 
   /**
@@ -89,25 +91,14 @@ export class ConversationEngineService {
     });
 
     if (result.completedDraft) {
-      const complaint = await this.prisma.complaint.create({
-        data: {
-          conversationId: conversation.id,
-          customerId: conversation.customerId,
-          category: result.completedDraft.category,
-          description: result.completedDraft.description,
-          contact: result.completedDraft.contact,
-        },
-      });
-
-      await this.notifications.enqueue({
-        type: 'new-complaint',
-        ticket: complaint.ticket,
-        category: complaint.category,
-        description: complaint.description,
-        contact: complaint.contact,
+      const complaint = await this.intake.submit({
         channel: incoming.channel,
+        customerId: conversation.customerId,
+        conversationId: conversation.id,
+        category: result.completedDraft.category,
+        description: result.completedDraft.description,
+        contact: result.completedDraft.contact,
       });
-      this.realtime.broadcast('complaint.created', complaint);
 
       await this.sendReply(
         conversation,

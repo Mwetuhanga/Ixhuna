@@ -21,8 +21,8 @@ export class EmailService {
     return this.transporter;
   }
 
-  async send(subject: string, text: string): Promise<void> {
-    const to = process.env.NOTIFY_TO_EMAIL;
+  /** Sends to the staff inbox (NOTIFY_TO_EMAIL) unless `to` is given. */
+  async send(subject: string, text: string, to = process.env.NOTIFY_TO_EMAIL): Promise<void> {
     const transporter = this.getTransporter();
     if (!transporter || !to) {
       this.logger.warn(`SMTP not configured; skipping email "${subject}"`);
