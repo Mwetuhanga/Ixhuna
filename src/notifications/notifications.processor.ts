@@ -17,9 +17,9 @@ export class NotificationsProcessor extends WorkerHost {
     switch (data.type) {
       case 'new-complaint':
         await this.email.send(
-          `New complaint #${data.ticket} (${data.category})`,
+          `New complaint ${data.reference} (${data.category})`,
           [
-            `Ticket: #${data.ticket}`,
+            `Reference: ${data.reference}`,
             `Channel: ${data.channel}`,
             `Category: ${data.category}`,
             `Contact: ${data.contact}`,
@@ -36,12 +36,12 @@ export class NotificationsProcessor extends WorkerHost {
         return;
       case 'complaint-receipt':
         await this.email.send(
-          `We received your complaint (ticket #${data.ticket})`,
+          `We received your complaint (reference ${data.reference})`,
           [
             'Thank you for letting us know about your complaint.',
             '',
-            `Your ticket number is #${data.ticket}. Please quote it if you contact us about this complaint.`,
-            'Our team will review it and follow up with you.',
+            'We have received it and passed it on to the team responsible.',
+            `Your reference number is ${data.reference}. Please keep it for any follow-up.`,
           ].join('\n'),
           data.to
         );

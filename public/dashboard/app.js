@@ -86,7 +86,7 @@ async function loadComplaints() {
   list.innerHTML = '';
   for (const complaint of complaints) {
     const li = document.createElement('li');
-    li.textContent = `#${complaint.ticket} ${complaint.category} · ${complaint.channel} — ${complaint.status}`;
+    li.textContent = `${complaint.reference} ${complaint.category} · ${complaint.channel} — ${complaint.status}`;
     // Chat complaints open their conversation; form complaints have none.
     li.addEventListener('click', () =>
       complaint.conversationId ? selectConversation(complaint.conversationId) : showComplaint(complaint)
@@ -98,7 +98,7 @@ async function loadComplaints() {
 function showComplaint(complaint) {
   state.activeConversationId = null;
   document.getElementById('thread-header').textContent =
-    `Complaint #${complaint.ticket} — ${complaint.category} via ${complaint.channel} (no chat to reply in)`;
+    `Complaint ${complaint.reference} — ${complaint.category} via ${complaint.channel} (no chat to reply in)`;
 
   const thread = document.getElementById('message-thread');
   thread.innerHTML = '';

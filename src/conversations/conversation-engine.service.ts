@@ -7,6 +7,7 @@ import { IncomingMessage } from '../channels/channel.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AgentsRealtimeGateway } from '../realtime/agents-realtime.gateway';
 import { ComplaintIntakeService } from '../complaints/complaint-intake.service';
+import { complaintReceivedMessage } from '../complaints/complaint-reference';
 import { advanceFlow, createFlowState, greeting, FlowState } from './conversation-flow';
 
 const HANDOVER_KEYWORDS = ['agent', 'human', 'representative'];
@@ -105,7 +106,7 @@ export class ConversationEngineService {
         incoming.channel,
         incoming.externalId,
         'BOT',
-        `Thank you. Your complaint has been logged as ticket #${complaint.ticket}. Our team will follow up soon.`
+        complaintReceivedMessage(complaint.reference)
       );
       return;
     }

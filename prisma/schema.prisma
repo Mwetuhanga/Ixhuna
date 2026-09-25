@@ -120,7 +120,8 @@ enum ComplaintStatus {
 // the one record analytics, routing and notifications work from.
 model Complaint {
   id             String          @id @default(uuid())
-  ticket         Int             @default(autoincrement())
+  // Reference number given to the complainant (see complaint-reference.ts).
+  reference      String          @unique
   // Channel the complaint arrived on ("whatsapp", "web", "web-form", ...).
   channel        String
   // Set when the complaint was collected in a chat conversation. Channels

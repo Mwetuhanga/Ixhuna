@@ -90,14 +90,14 @@
       .error:empty { display: none; }
       .success { background: var(--success-bg); color: var(--success-text); }
       .success h2 { margin-top: 0; }
-      .ticket { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0 0.75rem; }
+      .reference { font-size: 1.75rem; letter-spacing: 0.05em; font-weight: 700; margin: 0.25rem 0 0.75rem; }
       .success button { margin-top: 0.5rem; }
     </style>
   </head>
   <body>
     <main>
       <h1>Submit a complaint</h1>
-      <p class="intro">Tell us what went wrong. You'll get a ticket number so you can follow up.</p>
+      <p class="intro">Tell us what went wrong. You'll get a reference number so you can follow up.</p>
 
       <form id="complaint-form" class="card" novalidate>
         <div class="field">
@@ -162,12 +162,13 @@
 
       <section id="success" class="card success" hidden aria-live="polite">
         <h2 tabindex="-1">Thank you, we've received your complaint</h2>
-        <div id="ticket-block">
-          <p style="margin: 0">Your ticket number is</p>
-          <p class="ticket" id="ticket"></p>
-          <p>Please keep it. Quote it if you contact us about this complaint.</p>
+        <p>We have passed it on to the team responsible.</p>
+        <div id="reference-block">
+          <p style="margin: 0">Your reference number is</p>
+          <p class="reference" id="reference"></p>
+          <p>Please keep it for any follow-up.</p>
         </div>
-        <p id="receipt-note" hidden>We'll also email your ticket number to you.</p>
+        <p id="receipt-note" hidden>We'll also email your reference number to you.</p>
         <button type="button" id="another">Submit another complaint</button>
       </section>
     </main>
@@ -257,7 +258,7 @@
             errorEl.textContent = errorMessage(body);
             return;
           }
-          showSuccess(body && body.ticket, Boolean(values.email.trim()));
+          showSuccess(body && body.reference, Boolean(values.email.trim()));
         } catch {
           errorEl.textContent = 'Could not send your complaint. Check your connection and try again.';
         } finally {
@@ -266,10 +267,10 @@
         }
       });
 
-      function showSuccess(ticket, emailed) {
-        document.getElementById('ticket-block').hidden = !ticket;
-        document.getElementById('ticket').textContent = ticket ? `#${ticket}` : '';
-        document.getElementById('receipt-note').hidden = !(ticket && emailed);
+      function showSuccess(reference, emailed) {
+        document.getElementById('reference-block').hidden = !reference;
+        document.getElementById('reference').textContent = reference || '';
+        document.getElementById('receipt-note').hidden = !(reference && emailed);
         form.hidden = true;
         const success = document.getElementById('success');
         success.hidden = false;

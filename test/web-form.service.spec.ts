@@ -6,7 +6,7 @@ function setup(existingCustomer: { displayName: string | null; email: string | n
   const customer = { id: 'customer-1', ...existingCustomer };
   const findOrCreateByChannelIdentity = jest.fn().mockResolvedValue(customer);
   const update = jest.fn().mockResolvedValue(customer);
-  const submit = jest.fn(async (s) => ({ ticket: 7, ...s }));
+  const submit = jest.fn(async (s) => ({ reference: 'ABCD-EFGH', ...s }));
   const service = new WebFormService(
     { customer: { update } } as any,
     { findOrCreateByChannelIdentity } as any,

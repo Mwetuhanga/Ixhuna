@@ -6,7 +6,7 @@ import { WebFormService } from './web-form.service';
 import { RateLimiterService } from './rate-limiter.service';
 
 // Public (no login) endpoints behind the website complaint form at
-// /complaint. Only accepts complaints and returns the ticket number; it
+// /complaint. Only accepts complaints and returns the reference number; it
 // never exposes existing complaints.
 @Controller('public/complaints')
 export class WebFormController {
@@ -44,6 +44,6 @@ export class WebFormController {
     }
 
     const complaint = await this.webForm.submit(dto);
-    return { received: true, ticket: complaint.ticket };
+    return { received: true, reference: complaint.reference };
   }
 }

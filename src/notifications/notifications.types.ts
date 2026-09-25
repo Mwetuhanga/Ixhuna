@@ -2,7 +2,7 @@ export const NOTIFICATIONS_QUEUE = 'notifications';
 
 export interface NewComplaintJob {
   type: 'new-complaint';
-  ticket: number;
+  reference: string;
   category: string;
   description: string;
   contact: string;
@@ -16,13 +16,13 @@ export interface HandoverRequestedJob {
   reason: string;
 }
 
-// Sent to the complainant (not staff) so they have their ticket number. It
+// Sent to the complainant (not staff) so they have their reference number. It
 // deliberately doesn't echo the complaint text back, so the public form
 // can't be used to send arbitrary content to someone else's inbox.
 export interface ComplaintReceiptJob {
   type: 'complaint-receipt';
   to: string;
-  ticket: number;
+  reference: string;
   category: string;
 }
 

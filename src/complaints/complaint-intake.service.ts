@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Complaint } from '@prisma/client';
+import { Complaint, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AgentsRealtimeGateway } from '../realtime/agents-realtime.gateway';
+import { generateComplaintReference } from './complaint-reference';
+
+const MAX_REFERENCE_ATTEMPTS = 5;
 
 export interface ComplaintSubmission {
   channel: string;
@@ -13,7 +16,7 @@ export interface ComplaintSubmission {
   description: string;
   contact: string;
   language?: string | null;
-  /** When set, the complainant is emailed a receipt with their ticket number. */
+  /** When set, the complainant is emailed a receipt with their reference number. */
   receiptEmail?: string | null;
 }
 
@@ -35,17 +38,7 @@ export class ComplaintIntakeService {
   ) {}
 
   async submit(submission: ComplaintSubmission): Promise<Complaint> {
-    const complaint = await this.prisma.complaint.create({
-      data: {
-        channel: submission.channel,
-        customerId: submission.customerId,
-        conversationId: submission.conversationId ?? null,
-        category: submission.category,
-        description: submission.description,
-        contact: submission.contact,
-        language: submission.language ?? null,
-      },
-    });
+    const complaint = await this.createWithUniqueReference(submission);
 
     this.realtime.broadcast('complaint.created', complaint);
 
@@ -54,7 +47,7 @@ export class ComplaintIntakeService {
     await this.enqueueSafely(() =>
       this.notifications.enqueue({
         type: 'new-complaint',
-        ticket: complaint.ticket,
+        reference: complaint.reference,
         category: complaint.category,
         description: complaint.description,
         contact: complaint.contact,
@@ -67,13 +60,40 @@ export class ComplaintIntakeService {
         this.notifications.enqueue({
           type: 'complaint-receipt',
           to,
-          ticket: complaint.ticket,
+          reference: complaint.reference,
           category: complaint.category,
         })
       );
     }
 
     return complaint;
+  }
+
+  private async createWithUniqueReference(submission: ComplaintSubmission): Promise<Complaint> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.prisma.complaint.create({
+          data: {
+            reference: generateComplaintReference(),
+            channel: submission.channel,
+            customerId: submission.customerId,
+            conversationId: submission.conversationId ?? null,
+            category: submission.category,
+            description: submission.description,
+            contact: submission.contact,
+            language: submission.language ?? null,
+          },
+        });
+      } catch (err) {
+        // A reference collision is astronomically rare, but retry with a
+        // fresh one rather than fail the complaint.
+        const collision =
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002' &&
+          attempt < MAX_REFERENCE_ATTEMPTS;
+        if (!collision) throw err;
+      }
+    }
   }
 
   private async enqueueSafely(enqueue: () => Promise<void>): Promise<void> {
